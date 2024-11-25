@@ -9,8 +9,8 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
   for (auto it = args.begin(), end = args.end(); it != end; ++it) {
     if (*it == "-h" || *it == "--help") {
       options.show_help = true;
-    }
-    if (*it == "-v" || *it == "--verbose") {
+
+    } else if (*it == "-v" || *it == "--verbose") {
       options.extended_mode = true;
     }
     // Procesar otras opciones...
@@ -31,5 +31,9 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
 
 
 void print_usage () {
-  std::cout << "This is the help for using this program" << std::endl;
+  std::cout << "docserver [-v | --verbose] [-h | --help] FILE\n"
+            << "    [-v | --verbose]: Optional argument. If activated, every call to system library functions will be printed in the error stream\n"
+            << "    [-h | --help]: Optional argument. Prints this help\n"
+            << "    FILE: File to be used with this program\n"
+            << "      If more than one file is specified, it will be interpreted as a wrong argument\n";
 }
