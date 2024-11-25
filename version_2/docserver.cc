@@ -19,7 +19,6 @@ int main(int argc, char* argv[]) {
     // ...
     return EXIT_FAILURE;
   }
-  
   // Usar options.value() para acceder a las opciones...
   if (options.value().show_help) {
     print_usage(); 
@@ -30,7 +29,6 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
   }
   if (!options.value().output_filename.empty()) {
-    
     auto result = read_all(options.value().output_filename, options.value().extended_mode);
     if (!result) { // Verifica si `std::expected` contiene un error
       std::cerr << "Error " << result.error() << ": ";
@@ -39,11 +37,15 @@ int main(int argc, char* argv[]) {
       } else if (result.error() == 403) {
         std::cerr << "Some weird error" << std::endl;
       }
+      
     } else {
       std::string_view header = std::format("FileSize: {}\n", result->size()); // Si pongo un espacio o "-" salen cosas como: �z����Y��'}
       send_response(header, result.value());
       munmap(const_cast<void*>(static_cast<const void*>(result.value().data())), result->size());
     }
+  }
+  if (options.value().port != 0) {
+    std::cout << "El puerto es: " << options.value().port << std::endl;
   }
   
   return EXIT_SUCCESS;

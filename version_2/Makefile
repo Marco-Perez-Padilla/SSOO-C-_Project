@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -std=c++23 -Wall -g 
+CXXFLAGS = -std=c++23 -Wall -g
 
 SOURCES = $(wildcard *.cc)
 OBJ = $(SOURCES:.cc=.o)
