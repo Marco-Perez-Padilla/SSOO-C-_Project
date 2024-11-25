@@ -12,16 +12,13 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
   for (auto it = args.begin(), end = args.end(); it != end; ++it) {
     if (*it == "-h" || *it == "--help") {
       options.show_help = true;
-    }
-    if (*it == "-v" || *it == "--verbose") {
+    } else if (*it == "-v" || *it == "--verbose") {
       options.extended_mode = true;
-    }
-    if ((*it == "-p" || *it == "--port") && port == false) {
+    } else if ((*it == "-p" || *it == "--port") && port == false) {
       port = true;
       ports = true;
       continue;
-    }
-    if (ports == true && port == true) {
+    } else if (ports == true && port == true) {
       ports = false;
       if (std::all_of(it->begin(), it->end(), isdigit)) {
         options.port = std::stoi(std::string(*it));
@@ -29,9 +26,7 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
         options.output_filename = std::string(*it);
         file = true;
       }
-    }
-    // Procesar otras opciones...
-    else if(!it->starts_with("-") && file == false) {
+    } else if(!it->starts_with("-") && file == false) {
       options.output_filename = std::string(*it); 
       file = true;
     } else {
