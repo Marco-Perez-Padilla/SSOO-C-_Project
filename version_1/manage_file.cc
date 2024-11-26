@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
-std::expected<std::string_view, int> read_all(const std::string& path, bool extended) {
+std::expected<SafeMap, int> read_all(const std::string& path, bool extended) {
   SafeFD fd (open(path.c_str(), O_RDONLY)); 
   if (fd.get() < 0) {
     return std::unexpected(404);
@@ -28,7 +28,7 @@ std::expected<std::string_view, int> read_all(const std::string& path, bool exte
   if (extended) {
     std::cerr << "close(): se cierra el archivo \"" << path << "\" " << std::endl;
   }
-  return std::string_view(static_cast<char*>(mem), length);
+  return SafeMap(static_cast<char*>(mem), length);
 }
 
 
