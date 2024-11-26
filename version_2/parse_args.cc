@@ -6,7 +6,6 @@
 std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]) {
   bool file = false;
   bool port = false;
-  bool ports = false; 
   std::vector<std::string_view> args(argv + 1, argv + argc);
   program_options options;
   for (auto it = args.begin(), end = args.end(); it != end; ++it) {
@@ -14,12 +13,11 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
       options.show_help = true;
     } else if (*it == "-v" || *it == "--verbose") {
       options.extended_mode = true;
-    } else if ((*it == "-p" || *it == "--port") && port == false) {
+    } else if (*it == "-p" || *it == "--port") {
       port = true;
-      ports = true;
       continue;
-    } else if (ports == true && port == true) {
-      ports = false;
+    } else if (port == true) {
+      port = false;
       if (std::all_of(it->begin(), it->end(), isdigit)) {
         options.port = std::stoi(std::string(*it));
       } else {
