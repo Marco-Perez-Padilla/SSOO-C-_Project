@@ -1,3 +1,23 @@
+/**
+ * Universidad de La Laguna
+ * Escuela Superior de Ingenieria y Tecnologia
+ * Grado en Ingenieria Informatica
+ * Asignatura: Sistemas Operativos
+ * Curso: 2º
+ * Proyecto de C++: Programación de aplicaciones — Servidor de documentación
+ * Autor: Marco Perez Padilla
+
+ * Correo: alu0101469348@ull.edu.es
+ * Fecha: 23/11/2024
+
+ * Archivo parse_args.cc: Contiene las declaraciones necesarias para el procesamiento de argumentos pasados por 
+                          líneas de comandos, el enum parse_args_errors, y el struct program options
+
+ * Historial de revisiones:
+ *      23/11/2024 - Primera version (creacion) del codigo
+ *      23/11/2024 - Adicion de int port
+**/
+
 #include <string>
 #include <expected>
 
