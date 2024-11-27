@@ -17,7 +17,7 @@
 **/
 
 #ifndef SAFE_FD_H
-#define SAFE_FD_F
+#define SAFE_FD_H
 
 #include <unistd.h>
 

@@ -1,65 +1,22 @@
-#include "parse_args.h"
-#include <iostream>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/mman.h>
-
-std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]) {
-  bool file = false;
-  std::vector<std::string_view> args(argv + 1, argv + argc);
-  program_options options;
-  for (auto it = args.begin(), end = args.end(); it != end; ++it) {
-    if (*it == "-h" || *it == "--help") {
-      options.show_help = true;
-    }
-    if (*it == "-v" || *it == "--verbose") {
-      options.extended_mode = true;
-    }
-    // Procesar otras opciones...
-    else if(!it->starts_with("-") && file == false) {
-      options.output_filename = (std::string(*it)); // String de it
-      file = true;
-    } else {
-      return std::unexpected(parse_args_errors::unknown_option); 
-    }
-  }
-
-  if (file == false && options.show_help == false) {
-    return std::unexpected(parse_args_errors::missing_argument);
-  }
-
-  return options; 
-}
-
-
-void print_usage () {
-  std::cout << "This is the help for using this program" << std::endl;
-}
-
-
-std::expected<std::string_view, int> read_all(const std::string& path) {
-  int fd = open("archivo.txt", O_RDONLY);
-  if (fd < 0) {
-    return std::unexpected(404);
-  }
-
-  // Para mapear una archivo completo es necesario conocer su tamaño.
-  // Una forma es usar fstat() y otra es usar lseek().
-  // La función lseek() sirve para mover el puntero de lectura/escritura de un archivo y retorna la posición
-  // a la que se ha movido. Por tanto, si se mueve al final del archivo, se obtiene el tamaño de este.
-  int length = lseek(fd, 0, SEEK_END);
-
-  // Se mapea el archivo completo en memoria para solo lectura y de forma privada.
-  void* mem = mmap(NULL, length, PROT_READ, MAP_PRIVATE, fd, 0);
-  if (mem == MAP_FAILED) {
-    return std::unexpected(403);
-  }
-
-  // Opcionalmente, se puede cerrar el descriptor del archivo si ya no se necesita.
-  close(fd);
-
-  // Ahora se puede acceder a los datos del archivo como si estuvieran en la memoria.
-  // Por ejemplo, imprimir los primeros 10 caracteres por la consola.
-  std::string_view first_ten_chars(static_cast<char*>(mem), 10);
-  std::cout << first_ten_chars; //No puedo usar print o println
-}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+Quisque a eros bibendum, sodales ipsum rhoncus, auctor dolor. 
+Mauris finibus nibh non augue imperdiet, id condimentum sapien cursus. 
+Etiam eu ullamcorper augue, sit amet porttitor nunc. 
+Donec et cursus turpis, ut pretium leo. 
+Nunc accumsan magna a arcu posuere, non ornare magna convallis. 
+Aenean et velit nec diam congue dapibus ac ac enim. 
+Curabitur id eleifend nibh, in mollis sapien.
+Aenean facilisis id odio ac lobortis. 
+Mauris sed turpis vitae enim ultrices consectetur. 
+Integer accumsan rutrum augue nec pulvinar.
+In malesuada, sem eu sollicitudin fermentum, ex quam condimentum augue, ut placerat arcu ex ac lectus.
+Sed semper aliquet est eu pulvinar.
+Etiam volutpat, est sed tempus tincidunt, sapien elit dictum quam, a condimentum mauris magna eu est. 
+Ut ut mattis magna, sit amet volutpat eros. 
+Aliquam vel rutrum magna. 
+Pellentesque et tortor libero. 
+Quisque hendrerit dui volutpat sodales tempus. 
+Cras placerat eget neque non tempor. 
+Curabitur quis pharetra augue, viverra lacinia felis. 
+In convallis eros non lectus hendrerit, quis rhoncus ante pretium. 
+Donec auctor, dolor volutpat dapibus aliquet, leo sapien hendrerit ex, at ullamcorper urna quam nec massa.

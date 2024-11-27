@@ -14,6 +14,7 @@
 
  * Historial de revisiones:
  *      23/11/2024 - Primera version (creacion) del codigo
+ *      27/11/2024 - Eliminacion de funcion send_response()
 **/
 
 #ifndef MANAGE_FILE_H
@@ -25,6 +26,5 @@
 #include "safeMap.h"
 
 std::expected<SafeMap, int> read_all(const std::string& path, bool extended);
-void send_response(std::string_view header, std::string_view body = {});
 
 #endif

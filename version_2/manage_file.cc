@@ -14,6 +14,7 @@
 
  * Historial de revisiones:
  *      23/11/2024 - Primera version (creacion) del codigo
+ *      27/11/2024 - Eliminacion de funcion send_response()
 **/
 
 #include "manage_file.h"
@@ -23,6 +24,13 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+
+/**
+ * @brief Reads the file given through command lines
+ * @param string name of the file
+ * @param bool to show if the program is in extended mode
+ * @return SafeMap is there was no error. An int with the error code otherwise
+ */
 std::expected<SafeMap, int> read_all(const std::string& path, bool extended) {
   SafeFD fd (open(path.c_str(), O_RDONLY)); 
   if (extended) {
@@ -32,10 +40,6 @@ std::expected<SafeMap, int> read_all(const std::string& path, bool extended) {
     return std::unexpected(404);
   }
 
-  // Para mapear una archivo completo es necesario conocer su tamaño.
-  // Una forma es usar fstat() y otra es usar lseek().
-  // La función lseek() sirve para mover el puntero de lectura/escritura de un archivo y retorna la posición
-  // a la que se ha movido. Por tanto, si se mueve al final del archivo, se obtiene el tamaño de este.
   int length = lseek(fd.get(), 0, SEEK_END);
   if (extended) {
     std::cerr << "lseek(): se obtiene el tamaño en bytes del archivo \"" << path << "\": " << length << " bytes" << std::endl;
@@ -50,18 +54,9 @@ std::expected<SafeMap, int> read_all(const std::string& path, bool extended) {
     return std::unexpected(403);
   }
 
-
   if (extended) {
     std::cerr << "close(): se cierra el archivo \"" << path << "\" " << std::endl;
   }
+
   return SafeMap(static_cast<char*>(mem), length);
-}
-
-
-
-void send_response(std::string_view header, std::string_view body) {
-  std::cout << header;  
-  if (!body.empty()) {
-    std::cout << "\n" << body << "\n";  
-  }
 }

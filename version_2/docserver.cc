@@ -22,10 +22,11 @@
 #include <vector>
 #include <string_view>
 #include <format>
+#include <cstring> //strerror
 
 #include "parse_args.h"
 #include "manage_file.h"
-
+#include "manage_connection.h"
 
 int main(int argc, char* argv[]) {
   auto options = parse_args(argc, argv); 
@@ -36,7 +37,6 @@ int main(int argc, char* argv[]) {
     } else if (options.error() == parse_args_errors::unknown_option) {
       std::cerr << "fatal error: Unknown option" << std::endl;;
     }
-    // ...
     return EXIT_FAILURE;
   }
   // Usar options.value() para acceder a las opciones...
@@ -51,24 +51,51 @@ int main(int argc, char* argv[]) {
   }
 
   if (!options.value().output_filename.empty()) {
-    auto result = read_all(options.value().output_filename, options.value().extended_mode);
-    if (!result) { // Verifica si `std::expected` contiene un error
-      std::cerr << "Error " << result.error() << ": ";
-      if (result.error() == 404) {
-        std::cerr << "Not Found" << std::endl;
-      } else if (result.error() == 403) {
-        std::cerr << "Forbidden" << std::endl;
-      }
-      return EXIT_SUCCESS;
+    auto socket = make_socket(options.value().port, options.value().extended_mode);
+    if (!socket) { 
+      std::cerr << "fatal error: Error creating the socket " << std::endl;
+      return EXIT_FAILURE;
     }
-    
-    std::string_view header = std::format("FileSize: {}\n", result.value().get().size()); // Si pongo un espacio o "-" salen cosas como: �z����Y��'}
-    send_response(header, result.value().get());
-  }
 
-  if (options.value().port != 0) {
-    std::cout << "El puerto es: " << options.value().port << std::endl;
+    int listen = listen_connection(socket.value(), options.value().extended_mode);
+    if (listen != 0) {
+      std::cerr << "fatal error: It was not possible to put the socket on listening" << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    while (true) {
+      sockaddr_in local_address{};                            
+      local_address.sin_family = AF_INET;                    
+      local_address.sin_addr.s_addr = htonl(INADDR_ANY);      
+      local_address.sin_port = htons(0);  
+      auto accepted_socket = accept_connection(socket.value(), local_address, options.value().extended_mode);
+      if (!accepted_socket) {
+        std::cerr << "fatal error: Error accepting the connection" << std::endl;
+        return EXIT_FAILURE;
+      }
+      auto result = read_all(options.value().output_filename, options.value().extended_mode);
+      if (!result) { 
+        std::cerr << "Error " << result.error() << ": ";
+        if (result.error() == 404) {
+          std::cerr << "Not Found" << std::endl;
+        } else if (result.error() == 403) {
+          std::cerr << "Forbidden" << std::endl;
+        } else {
+          std::cerr << "fatal error: Unknown error reading the file" << std::endl;
+          return EXIT_FAILURE;
+        }
+      }
+      std::string_view header = std::format("FileSize: {}\n", result.value().get().size());
+      int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().get());
+      if (sent != 0) {
+        if (sent == ECONNRESET) {
+          std::cerr << "Warning: A minor error has occurred while sending the response" << std::endl;
+        } else {
+          std::cerr << "fatal error: Error sending the response" << strerror(sent) << std::endl;
+          return EXIT_FAILURE;  
+        }
+      }
+    }
   }
-  
   return EXIT_SUCCESS;
 }

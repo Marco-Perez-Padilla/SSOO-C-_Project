@@ -16,13 +16,14 @@
  *      23/11/2024 - Primera version (creacion) del codigo
  *      23/11/2024 - Adicion de opcion -p
  *      25/11/2024 - Arreglo de opcion -h y mejora de opcion -p
+ *      27/11/2024 - Adicion de funcion getenv()
 **/
 
-#include "parse_args.h"
 #include <vector>
 #include <iostream>
 #include <algorithm>
 
+#include "parse_args.h"
 
 /**
  * @brief Function that processes the arguments given through command line
@@ -35,6 +36,14 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
   bool port = false;
   std::vector<std::string_view> args(argv + 1, argv + argc);
   program_options options;
+
+  std::string env_port = get_env("DOCSERVER_PORT");
+  if (env_port.empty()) {
+    options.port = 8080;
+  } else {
+    options.port = std::stoi(env_port);
+  }
+
   for (auto it = args.begin(), end = args.end(); it != end; ++it) {
     if (*it == "-h" || *it == "--help") {
       options.show_help = true;
@@ -71,9 +80,26 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
  * @brief Help function. Prints the help
  */
 void print_usage () {
-  std::cout << "docserver [-v | --verbose] [-h | --help] FILE\n"
+  std::cout << "docserver [-v | --verbose] [-h | --help] [-p <puerto> | --port <puerto>] FILE\n"
             << "    [-v | --verbose]: Optional argument. If activated, every call to system library functions will be printed in the error stream\n"
             << "    [-h | --help]: Optional argument. Prints this help\n"
+            << "    [-p <puerto> | --port <puerto>]: Number of port to put on listen\n"
+            << "      If -p isn't selected, the default port will be DOCSERVER_PORT. if it does not have a value, the default port will be 8080\n"
             << "    FILE: File to be used with this program\n"
             << "      If more than one file is specified, it will be interpreted as a wrong argument\n";
+}
+
+
+/**
+ * @brief Function to get any environment variable
+ * @param string name of the variable. For instance: DOCSERVER_PORT.
+ * @return String with the result. Empty if the variable hasn't been found.
+ */
+std::string get_env(const std::string& name) {
+  char* value = getenv(name.c_str());
+  if (value) {
+    return std::string(value);
+  } else {
+  return std::string();
+  }
 }

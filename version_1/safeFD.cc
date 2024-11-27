@@ -22,8 +22,8 @@
 
 /**
  * @brief operator =, we assure that a SafeFD can be created from an older one as an identical copy and destruying the previous one
- * @param 
- * @return 
+ * @param SafeMap&&: Referencia a un rvalue de tipo SafeMap
+ * @return *this: referencia al objeto actual 
  */
 SafeFD& SafeFD::operator=(SafeFD&& other) noexcept {
   if (this != &other && fd_ != other.fd_) {

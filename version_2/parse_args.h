@@ -16,6 +16,7 @@
  * Historial de revisiones:
  *      23/11/2024 - Primera version (creacion) del codigo
  *      23/11/2024 - Adicion de int port
+ *      27/11/2024 - Adicion de funcion getenv()
 **/
 
 #include <string>
@@ -24,7 +25,6 @@
 enum class parse_args_errors {
  missing_argument,
  unknown_option,
- // ...
 };
 
 struct program_options {
@@ -32,9 +32,8 @@ struct program_options {
  bool extended_mode = false;
  int port = 8080;
  std::string output_filename;
- // ...
- //std::vector<std::string> additional_args; 
 };
 
 std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]);
 void print_usage ();
+std::string get_env(const std::string& name);

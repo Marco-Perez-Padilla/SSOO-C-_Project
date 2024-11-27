@@ -24,30 +24,9 @@
 #include "safeMap.h"
 
 /**
- * @brief Destructor. It assures to unmap the memory automatically when out of scope
- */
-SafeMap::~SafeMap() {
-  if (!sv_.empty()) {
-    munmap(const_cast<char*>(sv_.data()), size_);
-  }
-}
-
-
-/**
- * @brief New constructor
- * @param 
- * @return
- */
-SafeMap::SafeMap(SafeMap&& other) noexcept : sv_(other.sv_), size_(other.size_) {
-  other.sv_ = {};  // Invalida el string_view en el objeto original
-  other.size_ = 0; // Invalida el tamaño en el objeto original
-}
-
-
-/**
  * @brief operator =, we assure that a SafeFD can be created from an older one as an identical copy and destruying the previous one
- * @param 
- * @return 
+ * @param SafeMap&&: Referencia a un rvalue de tipo SafeMap
+ * @return *this: referencia al objeto actual 
  */
 SafeMap& SafeMap::operator=(SafeMap&& other) noexcept {
   if (this != &other) {
@@ -62,4 +41,24 @@ SafeMap& SafeMap::operator=(SafeMap&& other) noexcept {
     other.size_ = 0; // Invalida el tamaño en el objeto original
   }
   return *this;
+}
+
+
+/**
+ * @brief Destructor. It assures to unmap the memory automatically when out of scope
+ */
+SafeMap::~SafeMap() {
+  if (!sv_.empty()) {
+    munmap(const_cast<char*>(sv_.data()), size_);
+  }
+}
+
+
+/**
+ * @brief New constructor
+ * @param SafeMap&&: Referencia a un rvalue de tipo SafeMap
+ */
+SafeMap::SafeMap(SafeMap&& other) noexcept : sv_(other.sv_), size_(other.size_) {
+  other.sv_ = {};  // Invalida el string_view en el objeto original
+  other.size_ = 0; // Invalida el tamaño en el objeto original
 }

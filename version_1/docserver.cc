@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
       return EXIT_SUCCESS;
     }
 
-    std::string_view header = std::format("FileSize: {}\n", result.value().get().size()); // Si pongo un espacio o "-" salen cosas como: �z����Y��'}
+    std::string_view header = std::format("FileSize: {}\n", result.value().get().size()); 
     send_response(header, result.value().get());
   }
   

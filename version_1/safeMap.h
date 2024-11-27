@@ -10,7 +10,7 @@
  * Correo: alu0101469348@ull.edu.es
  * Fecha: 26/11/2024
 
- * Archivo safeFD.h: Contiene las declaraciones de la clase SafeMap. Se asegura de desmapear automaticamente la memoria al salirse de ámbito
+ * Archivo safeMap.h: Contiene las declaraciones de la clase SafeMap. Se asegura de desmapear automaticamente la memoria al salirse de ámbito
 
  * Historial de revisiones:
  *      26/11/2024 - Primera version (creacion) del codigo
