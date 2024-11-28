@@ -36,4 +36,4 @@ struct program_options {
 
 std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]);
 void print_usage ();
-std::string get_env(const std::string& name);
+std::string get_env(const std::string& name, bool extended);

@@ -48,7 +48,6 @@ int main(int argc, char* argv[]) {
   if (options.value().extended_mode) {
     std::cout << "Program is in extended mode. Every call to system library functions will be printed in the standard error stream." << std::endl;
     std::cout << std::endl;
-    std::cerr << "getenv(): Se obtiene la variable de entorno DOCSERVER_PORT" << std::endl;
   }
 
   if (!options.value().output_filename.empty()) {

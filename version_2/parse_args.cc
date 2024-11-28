@@ -37,13 +37,6 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
   std::vector<std::string_view> args(argv + 1, argv + argc);
   program_options options;
 
-  std::string env_port = get_env("DOCSERVER_PORT");
-  if (env_port.empty()) {
-    options.port = 8080;
-  } else {
-    options.port = std::stoi(env_port);
-  }
-
   for (auto it = args.begin(), end = args.end(); it != end; ++it) {
     if (*it == "-h" || *it == "--help") {
       options.show_help = true;
@@ -65,6 +58,15 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
       file = true;
     } else {
       return std::unexpected(parse_args_errors::unknown_option); 
+    }
+  }
+
+  if (!port) {
+    std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode);
+    if (env_port.empty()) {
+      options.port = 8080;
+    } else {
+      options.port = std::stoi(env_port);
     }
   }
 
@@ -95,8 +97,11 @@ void print_usage () {
  * @param string name of the variable. For instance: DOCSERVER_PORT.
  * @return String with the result. Empty if the variable hasn't been found.
  */
-std::string get_env(const std::string& name) {
+std::string get_env(const std::string& name, bool extended) {
   char* value = getenv(name.c_str());
+  if (extended) {
+    std::cerr << "getenv(): Se obtiene la variable de entorno DOCSERVER_PORT" << std::endl;
+  }
   if (value) {
     return std::string(value);
   } else {
