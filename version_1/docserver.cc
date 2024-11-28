@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "Not Found" << std::endl;
       } else if (result.error() == 403) {
         std::cerr << "Forbidden" << std::endl;
-      }
+      } 
       return EXIT_SUCCESS;
     }
 

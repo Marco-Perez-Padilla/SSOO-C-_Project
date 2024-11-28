@@ -43,7 +43,7 @@ std::expected<SafeMap, int> read_all(const std::string& path, bool extended) {
   if (extended) {
     std::cerr << "lseek(): se obtiene el tamaño en bytes del archivo \"" << path << "\": " << length << " bytes" << std::endl;
   }
-
+  
   void* mem = mmap(NULL, length, PROT_READ, MAP_PRIVATE, fd.get(), 0);
   if (extended) {
     std::cerr << "mmap(): se mapea el archivo \"" << path << "\" " << std::endl;
