@@ -50,7 +50,6 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
   }
 
-  if (!options.value().output_filename.empty()) {
     auto socket = make_socket(options.value().port, options.value().extended_mode);
     if (!socket) { 
       std::cerr << "fatal error: Error creating the socket " << std::endl;
@@ -73,6 +72,9 @@ int main(int argc, char* argv[]) {
         std::cerr << "fatal error: Error accepting the connection" << std::endl;
         return EXIT_FAILURE;
       }
+
+      //Receive_request
+
       auto result = read_all(options.value().output_filename, options.value().extended_mode);
       if (!result) { 
         std::cerr << "Error " << result.error() << ": ";
@@ -96,6 +98,6 @@ int main(int argc, char* argv[]) {
         }
       }
     }
-  }
+  
   return EXIT_SUCCESS;
 }

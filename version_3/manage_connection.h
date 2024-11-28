@@ -15,6 +15,8 @@
  * Historial de revisiones:
  *      26/11/2024 - Primera version (creacion) del codigo
  *      27/11/2024 - Adicion de funcion send_response() y eliminacion de getenv()
+ *      28/11/2024 - Adicion de funciones receive_request() y process_petition()
+ *      28/11/2024 - Adicion de enum para manejar errores en process_petition()
 **/
 
 #ifndef MANAGE_CONNECTION_H
@@ -27,9 +29,17 @@
 
 #include "safeFD.h"
 
+enum class process_error {
+  invalid_format,
+  invalid_command,
+  invalid_path,
+};
+
 std::expected<SafeFD, int> make_socket(uint16_t port, bool extended);
 int listen_connection(const SafeFD& socket, bool extended);
 std::expected<SafeFD, int> accept_connection(const SafeFD& socket,sockaddr_in& client_addr, bool extended);
 int send_response(const SafeFD& socket, std::string_view header, bool extended, std::string_view body = {});
+std::expected<std::string, int> receive_request(const SafeFD& socket,size_t max_size, bool extended);
+std::expected<std::string, process_error> process_petition (const std::string& request);
 
 #endif

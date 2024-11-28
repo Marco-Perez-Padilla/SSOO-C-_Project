@@ -17,13 +17,18 @@
  *      23/11/2024 - Adicion de opcion -p
  *      25/11/2024 - Arreglo de opcion -h y mejora de opcion -p
  *      27/11/2024 - Adicion de funcion getenv()
+ *      28/11/2024 - Adicion de opcion -b y funcion get_cwd
 **/
 
 #include <vector>
 #include <iostream>
 #include <algorithm>
+#include <array>
+#include <unistd.h>
 
 #include "parse_args.h"
+
+constexpr std::size_t max_path_size = 4096;
 
 /**
  * @brief Function that processes the arguments given through command line
@@ -34,6 +39,8 @@
 std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]) {
   bool file = false;
   bool port = false;
+  bool base = false;
+
   std::vector<std::string_view> args(argv + 1, argv + argc);
   program_options options;
 
@@ -43,25 +50,29 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
     } else if (*it == "-v" || *it == "--verbose") {
       options.extended_mode = true;
     } else if (*it == "-p" || *it == "--port") {
+      options.port = true;
       port = true;
       continue;
     } else if (port == true) {
       port = false;
       if (std::all_of(it->begin(), it->end(), isdigit)) {
-        options.port = std::stoi(std::string(*it));
+        options.b_port = std::stoi(std::string(*it));
       } else {
-        options.output_filename = std::string(*it);
-        file = true;
+        return std::unexpected(parse_args_errors::port_error);
       }
-    } else if(!it->starts_with("-") && file == false) {
-      options.output_filename = std::string(*it); 
-      file = true;
+    } else if (*it == "-b" || *it == "--base") {
+      options.base = true;
+      base = true;
+      continue;
+    } else if (base == true){
+      base = false;
+      options.BASE_DIR = std::string(*it);
     } else {
       return std::unexpected(parse_args_errors::unknown_option); 
     }
   }
 
-  if (!port) {
+  if (options.b_port == false) {
     std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode);
     if (env_port.empty()) {
       options.port = 8080;
@@ -70,9 +81,19 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
     }
   }
 
-  if (file == false && options.show_help == false) {
-    return std::unexpected(parse_args_errors::missing_argument);
-  }
+  if (options.base == false) {
+    std::string env_basedir = get_env("DOCSERVER_BASEDIR", options.extended_mode);
+    if (env_basedir.empty()) {
+      auto cwd = get_cwd(options.extended_mode);
+      if (!cwd) {
+        return std::unexpected(parse_args_errors::cwd_error); 
+      } else {
+        options.BASE_DIR = cwd.value();
+      }
+    } else {
+      options.BASE_DIR = env_basedir;
+    }
+  } 
 
   return options; 
 }
@@ -95,6 +116,7 @@ void print_usage () {
 /**
  * @brief Function to get any environment variable
  * @param string name of the variable. For instance: DOCSERVER_PORT.
+ * @param bool extended to show if the program is in extended mode
  * @return String with the result. Empty if the variable hasn't been found.
  */
 std::string get_env(const std::string& name, bool extended) {
@@ -106,5 +128,25 @@ std::string get_env(const std::string& name, bool extended) {
     return std::string(value);
   } else {
   return std::string();
+  }
+}
+
+
+/**
+ * @brief Function to get the working directory
+ * @param bool extended to show if the program is in extended mode
+ * @return String with the result. A code error if any error occurred
+ */
+std::expected<std::string, int> get_cwd(bool extended) {
+  std::array <char, max_path_size> buff;
+  char* result = getcwd(buff.data(), max_path_size);   
+  if (extended) {
+    std::cerr << "getcwd(): Se obtiene el directorio de trabajo" << std::endl;
+  } 
+  if (result == NULL) {
+    return std::unexpected(errno);
+  }
+  else {
+    return buff.data();
   }
 }

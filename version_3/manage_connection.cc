@@ -18,7 +18,8 @@
 **/
 
 #include <sys/socket.h> // socket
-#include <iostream>
+#include <iostream> 
+#include <sstream> // isstringstream
 
 #include "manage_connection.h"
 
@@ -105,6 +106,51 @@ std::expected<SafeFD, int> accept_connection(const SafeFD& socket,sockaddr_in& c
   }
 
   return new_fd;
+}
+
+
+/**
+ * @brief Function to read the client petition
+ * @param SafeFD receives in this socket, result of accept_connection()
+ * @param size_t max_size bytes of the client petition
+ * @param bool extended to show if the program is in extended mode
+ * @return string with the client petition if no error has occurred. Code errno otherwise
+ */
+std::expected<std::string, int> receive_request(const SafeFD& socket,size_t max_size, bool extended) {
+  std::string request {}; //resize con max_size
+  request.resize(max_size);
+  size_t bytes_read = recv(socket.get(), request.data(), request.size(), 0);
+  if (extended) {
+    std::cerr << "recv(): Leer datos entrantes en el socket" << std::endl;
+  }
+  if (bytes_read < 0) {
+    return std::unexpected(errno);
+  }
+  request.resize(bytes_read);
+  return request;
+}
+
+
+/**
+ * @brief Function that processes the client petition
+ * @param string request
+ * @return String with the route to the file if no error has occurred. A code error otherwise
+ */
+std::expected<std::string, process_error> process_petition (const std::string& request) {
+  std::istringstream iss (request);
+  std::string command;    // GET
+  std::string path;       // "/..."
+  if (!(iss >> command >> path)) {
+    return std::unexpected(process_error::invalid_format);  
+  } 
+  if (command != "GET") {
+    return std::unexpected(process_error::invalid_command);
+  } 
+  if (path.empty() || path.at(0) != '/') {
+    return std::unexpected(process_error::invalid_path);
+  }
+
+  return path;
 }
 
 

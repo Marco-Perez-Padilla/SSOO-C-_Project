@@ -17,6 +17,8 @@
  *      23/11/2024 - Primera version (creacion) del codigo
  *      23/11/2024 - Adicion de int port
  *      27/11/2024 - Adicion de funcion getenv()
+ *      28/11/2024 - Adicion de opcion -b y funcion get_cwd
+ *      28/11/2024 - Adicion de los booleanos b_port y port, y del string BASE_DIR
 **/
 
 #include <string>
@@ -25,15 +27,21 @@
 enum class parse_args_errors {
  missing_argument,
  unknown_option,
+ cwd_error,
+ port_error,
 };
 
 struct program_options {
  bool show_help = false;
  bool extended_mode = false;
- int port = 8080;             // Testear el código con -p 51400
+ bool b_port = false;
+ bool base = false;
+ int port;             // Testear el código con -p 51400
  std::string output_filename;
+ std::string BASE_DIR;
 };
 
 std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]);
 void print_usage ();
 std::string get_env(const std::string& name, bool extended);
+std::expected<std::string, int> get_cwd(bool extended);
