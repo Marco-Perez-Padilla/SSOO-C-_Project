@@ -24,6 +24,8 @@
 #include <string>
 #include <expected>
 
+constexpr std::size_t max_path_size = 4096;
+
 enum class parse_args_errors {
  missing_argument,
  unknown_option,

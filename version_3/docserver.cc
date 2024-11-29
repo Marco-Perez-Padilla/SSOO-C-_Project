@@ -74,7 +74,27 @@ int main(int argc, char* argv[]) {
       }
 
       //Receive_request
+      auto received = receive_request(accepted_socket.value(), max_path_size, options.value().extended_mode);
+      if (!received) {
+        if (received.error() != ECONNRESET) {
+          std::cerr << "fatal error: Error receiving the request" << std::endl;
+          return EXIT_FAILURE;
+        } else {
+          std::cerr << "Warning: Minor error receiving the request" << std::endl;
+        }
+      }
 
+      //Process_petition
+      auto processed = process_petition(received.value());
+      if (!processed) {
+        if (processed.error() == 400) {
+          std::cerr << "Error 400: Bad Request" << std::endl;
+          continue;
+        }
+      }
+
+      options.value().output_filename = (options.value().BASE_DIR + processed.value());
+      
       auto result = read_all(options.value().output_filename, options.value().extended_mode);
       if (!result) { 
         std::cerr << "Error " << result.error() << ": ";

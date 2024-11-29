@@ -28,8 +28,6 @@
 
 #include "parse_args.h"
 
-constexpr std::size_t max_path_size = 4096;
-
 /**
  * @brief Function that processes the arguments given through command line
  * @param argc
@@ -37,7 +35,6 @@ constexpr std::size_t max_path_size = 4096;
  * @return Program options struct with all the options if no error has occured. Enum parse args error otherwise with the specified error
  */
 std::expected<program_options, parse_args_errors> parse_args(int argc, char* argv[]) {
-  bool file = false;
   bool port = false;
   bool base = false;
 
@@ -72,26 +69,26 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
     }
   }
 
-  if (options.b_port == false) {
-    std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode);
+  if (options.b_port == false) {   // If -p hasn't been selected
+    std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode); // Gets $DOCSERVER_PORT
     if (env_port.empty()) {
-      options.port = 8080;
+      options.port = 8080;     // If empty then the default port is 8080
     } else {
-      options.port = std::stoi(env_port);
+      options.port = std::stoi(env_port); // If not empty then the port is $DOCSERVER_PORT
     }
   }
 
-  if (options.base == false) {
-    std::string env_basedir = get_env("DOCSERVER_BASEDIR", options.extended_mode);
+  if (options.base == false) {   // If -b hasn't been used
+    std::string env_basedir = get_env("DOCSERVER_BASEDIR", options.extended_mode); // Gets $DOCSERVER_BASEDIR
     if (env_basedir.empty()) {
-      auto cwd = get_cwd(options.extended_mode);
+      auto cwd = get_cwd(options.extended_mode);    // If empty then get the cwd
       if (!cwd) {
         return std::unexpected(parse_args_errors::cwd_error); 
       } else {
         options.BASE_DIR = cwd.value();
       }
-    } else {
-      options.BASE_DIR = env_basedir;
+    } else { 
+      options.BASE_DIR = env_basedir;    // If not empty then options.BASE_DIR is $DOCSERVER_BASEDIR
     }
   } 
 

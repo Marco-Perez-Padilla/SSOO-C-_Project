@@ -136,18 +136,18 @@ std::expected<std::string, int> receive_request(const SafeFD& socket,size_t max_
  * @param string request
  * @return String with the route to the file if no error has occurred. A code error otherwise
  */
-std::expected<std::string, process_error> process_petition (const std::string& request) {
+std::expected<std::string, int> process_petition (const std::string& request) {
   std::istringstream iss (request);
   std::string command;    // GET
   std::string path;       // "/..."
   if (!(iss >> command >> path)) {
-    return std::unexpected(process_error::invalid_format);  
+    return std::unexpected(400);  
   } 
   if (command != "GET") {
-    return std::unexpected(process_error::invalid_command);
+    return std::unexpected(400);
   } 
   if (path.empty() || path.at(0) != '/') {
-    return std::unexpected(process_error::invalid_path);
+    return std::unexpected(400);
   }
 
   return path;
@@ -180,5 +180,6 @@ int send_response(const SafeFD& socket, std::string_view header, bool extended, 
       std::cerr << "send(): Se envían los datos del cuerpo a través del socket" << std::endl;
     }
   }
+  
   return EXIT_SUCCESS; 
 }
