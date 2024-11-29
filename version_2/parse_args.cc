@@ -44,6 +44,7 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
       options.extended_mode = true;
     } else if (*it == "-p" || *it == "--port") {
       port = true;
+      options.b_port = true;
       continue;
     } else if (port == true) {
       port = false;
@@ -61,12 +62,12 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
     }
   }
 
-  if (!port) {
-    std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode);
+  if (options.b_port == false) {   // If -p hasn't been selected
+    std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode); // Gets $DOCSERVER_PORT
     if (env_port.empty()) {
-      options.port = 8080;
+      options.port = 8080;     // If empty then the default port is 8080
     } else {
-      options.port = std::stoi(env_port);
+      options.port = std::stoi(env_port); // If not empty then the port is $DOCSERVER_PORT
     }
   }
 

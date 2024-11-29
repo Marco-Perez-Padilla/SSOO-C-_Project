@@ -30,6 +30,7 @@ enum class parse_args_errors {
 struct program_options {
  bool show_help = false;
  bool extended_mode = false;
+ bool b_port = false;
  int port = 8080;             // Testear el código con -p 51400
  std::string output_filename;
 };
