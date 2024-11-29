@@ -17,6 +17,7 @@
  *      27/11/2024 - Adicion de funcion send_response() y eliminacion de getenv()
  *      28/11/2024 - Adicion de funciones receive_request() y process_petition()
  *      28/11/2024 - Adicion de enum para manejar errores en process_petition()
+ *      29/11/2024 - Eliminacion del enum
 **/
 
 #ifndef MANAGE_CONNECTION_H

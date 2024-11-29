@@ -16,6 +16,7 @@
  *      23/11/2024 - Primera version (creacion) del codigo
  *      25/11/2024 - Arreglo de casos -h y -p
  *      26/11/2024 - Adicion e integracion de la clase SafeMap
+ *      29/11/2024 - Adicion e integracion de la nueva funcionalidad en base a la opcion -b
 **/
 
 #include <iostream>
@@ -88,13 +89,22 @@ int main(int argc, char* argv[]) {
       auto processed = process_petition(received.value());
       if (!processed) {
         if (processed.error() == 400) {
-          std::cerr << "Error 400: Bad Request" << std::endl;
+          std::string header ("Error 400: Bad Request\n");
+          int sent = send_response(accepted_socket.value(), header, options.value().extended_mode);
+          if (sent != 0) {
+            if (sent == ECONNRESET) {
+              std::cerr << "Warning: A minor error has occurred while sending the response" << std::endl;
+            } else {
+              std::cerr << "fatal error: Error sending the response" << strerror(sent) << std::endl;
+              return EXIT_FAILURE;  
+            }
+          }
           continue;
         }
       }
 
       options.value().output_filename = (options.value().BASE_DIR + processed.value());
-      
+
       auto result = read_all(options.value().output_filename, options.value().extended_mode);
       if (!result) { 
         std::cerr << "Error " << result.error() << ": ";
@@ -107,6 +117,7 @@ int main(int argc, char* argv[]) {
           return EXIT_FAILURE;
         }
       }
+
       std::string_view header = std::format("FileSize: {}\n", result.value().get().size());
       int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().get());
       if (sent != 0) {
