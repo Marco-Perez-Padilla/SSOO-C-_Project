@@ -123,6 +123,12 @@
     "semaphore": "cpp",
     "stop_token": "cpp",
     "thread": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "set": "cpp",
+    "fstream": "cpp",
+    "iomanip": "cpp",
+    "codecvt": "cpp",
+    "bitset": "cpp",
+    "regex": "cpp"
   }
 }

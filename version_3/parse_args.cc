@@ -47,13 +47,13 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
     } else if (*it == "-v" || *it == "--verbose") {
       options.extended_mode = true;
     } else if (*it == "-p" || *it == "--port") {
-      options.port = true;
       port = true;
+      options.b_port = true;
       continue;
     } else if (port == true) {
       port = false;
       if (std::all_of(it->begin(), it->end(), isdigit)) {
-        options.b_port = std::stoi(std::string(*it));
+        options.port = std::stoi(std::string(*it)); // Revisar
       } else {
         return std::unexpected(parse_args_errors::port_error);
       }
@@ -71,9 +71,7 @@ std::expected<program_options, parse_args_errors> parse_args(int argc, char* arg
 
   if (options.b_port == false) {   // If -p hasn't been selected
     std::string env_port = get_env("DOCSERVER_PORT", options.extended_mode); // Gets $DOCSERVER_PORT
-    if (env_port.empty()) {
-      options.port = 8080;     // If empty then the default port is 8080
-    } else {
+    if (!env_port.empty()) {
       options.port = std::stoi(env_port); // If not empty then the port is $DOCSERVER_PORT
     }
   }

@@ -20,6 +20,10 @@
 #include <sys/socket.h> // socket
 #include <iostream> 
 #include <sstream> // isstringstream
+#include <filesystem>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <array>
 
 #include "manage_connection.h"
 
@@ -182,4 +186,127 @@ int send_response(const SafeFD& socket, std::string_view header, bool extended, 
   }
   
   return EXIT_SUCCESS; 
+}
+
+
+bool file_exists(const std::string& path) {
+  bool result = std::filesystem::exists(path) && std::filesystem::is_regular_file(path);
+  return result;
+}
+
+// Verificar si es ejecutable
+bool is_executable(const std::string& path) {
+  if (!file_exists(path)) {
+    return false;
+  }
+  bool result = (std::filesystem::status(path).permissions() & std::filesystem::perms::owner_exec) != std::filesystem::perms::none;
+  return result;
+}
+
+
+
+/**
+ * @brief
+ * @param
+ * @param
+ * @return
+ */
+std::expected<std::string, execute_program_error> execute_program(const std::string& path, const exec_environment& env) {
+
+  if (!file_exists(path)) {
+    return std::unexpected(execute_program_error{"Not found", 404});
+  } else if (!is_executable(path)) {
+    return std::unexpected(execute_program_error{"Forbidden", 403});
+  }
+
+  const size_t tam_buffer (256);
+
+  int pipefd[2];   // en 0 tenemos el fd del extremo de lectura y en 1 escritura
+  int pipe_result = pipe(pipefd);
+  if (pipe_result < 0) {
+    return std::unexpected(execute_program_error{"Error creating the pipeline", errno});
+  }
+
+  pid_t pid = fork();
+
+  if (pid < 0) {
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return std::unexpected(execute_program_error{"Error creating the child process", errno});
+  }
+
+  if (pid == 0) {    //  Para el hijo es 0. Para el padre es mayor a 0 (es el pid del hijo)
+    // Bloque proceso hijo
+
+    close (pipefd[0]);   // Cerramos el extremo de lectura (del proceso hijo nada más)
+
+    int dup2_result = dup2 (pipefd[1], 1);
+    if (!dup2_result) {
+      int error = errno;
+      close(pipefd[1]);
+      return std::unexpected(execute_program_error{"Error creating the dup", error});
+    }
+    // Set environment variables
+    setenv("REQUEST_PATH", env.request_path.c_str(), 1);
+    setenv("SERVER_BASEDIR", env.server_basedir.c_str(), 1);
+    setenv("REMOTE_PORT", std::to_string(env.remote_port).c_str(), 1);
+    setenv("REMOTE_IP", env.remote_ip.c_str(), 1);
+
+    // Execute the actual program passed in path
+    execl(path.c_str(), path.c_str(), nullptr);
+
+    return std::unexpected (execute_program_error{"The file couldn't be executed", EXIT_FAILURE});
+  } else if (pid > 0) {
+    // Bloque proceso padre
+
+    close(pipefd[1]);
+    // waitpid (pid, int* status, int option), option = 0 ===> waitpid se vuelve bloqueante
+    int status {};
+    int waitpid_result = waitpid (pid, &status, 0);
+    if (waitpid_result == -1) {
+      int error = errno;
+      close(pipefd[0]);
+      return std::unexpected (execute_program_error{"Error waiting", error});
+    } // Si termina, sea con éxito o error, se ha terminado de forma normal. Si termina por algo externo como una señal (ej ctrl c), termina anormalmente.
+    if (WIFEXITED(status)) {
+      // El proceso terminó normalmente
+      if (WEXITSTATUS(status) == EXIT_SUCCESS) {
+        std::array<char, tam_buffer> buffer;
+        bool flag = true;
+        std::string listen {};
+        while (flag) {
+          const size_t nbytes = read(pipefd[0], buffer.data(), tam_buffer);
+          if (nbytes < 0) {
+            int error = errno;
+            close(pipefd[0]);
+            return std::unexpected(execute_program_error{"Invalid size", error});
+          } else {
+            if (nbytes < tam_buffer) {
+              flag = false;
+            }
+            listen.append(buffer.data(), 0, static_cast<size_t>(nbytes));
+          }
+        }
+        close(pipefd[0]);
+        
+        return listen;
+
+      } else {
+        close(pipefd[0]);
+        return std::unexpected(execute_program_error{"Error ending the process", WEXITSTATUS(status)});
+      }
+    } else {
+      // El proceso terminó anormalmente
+      close(pipefd[0]);
+      std::string cout = "Proceso hijo termino anormalmente\n" ;
+      return cout; 
+    }
+
+  } else {
+    // Bloque de error en fork()
+    int error = errno;
+    close(pipefd[0]);
+    close (pipefd[1]);
+    return std::unexpected(execute_program_error{"Error in fork", error});
+  }
 }

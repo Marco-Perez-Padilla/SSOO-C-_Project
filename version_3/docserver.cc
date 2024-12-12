@@ -24,10 +24,16 @@
 #include <string_view>
 #include <format>
 #include <cstring> //strerror
+#include <regex>
 
 #include "parse_args.h"
 #include "manage_file.h"
 #include "manage_connection.h"
+
+
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 int main(int argc, char* argv[]) {
   auto options = parse_args(argc, argv); 
@@ -104,30 +110,73 @@ int main(int argc, char* argv[]) {
       }
 
       options.value().output_filename = (options.value().BASE_DIR + processed.value());
+      std::string name = options.value().output_filename;
 
-      auto result = read_all(options.value().output_filename, options.value().extended_mode);
-      if (!result) { 
-        std::cerr << "Error " << result.error() << ": ";
-        if (result.error() == 404) {
-          std::cerr << "Not Found" << std::endl;
-        } else if (result.error() == 403) {
-          std::cerr << "Forbidden" << std::endl;
+      std::smatch reslt;
+      std::regex pattern (R"(.*/bin/.*)");
+      bool reg_result = std::regex_search(name, reslt, pattern);
+      if (reg_result) {
+
+        exec_environment env = {
+        .request_path = options.value().output_filename,
+        .server_basedir = options.value().BASE_DIR,
+        .remote_port = local_address.sin_port,
+        };
+
+        char ip_buffer[INET_ADDRSTRLEN];
+        if (inet_ntop(AF_INET, &local_address.sin_addr, ip_buffer, INET_ADDRSTRLEN)) {
+            env.remote_ip = std::string(ip_buffer);
         } else {
-          std::cerr << "fatal error: Unknown error reading the file" << std::endl;
-          return EXIT_FAILURE;
+            std::cerr << "Error converting IP address." << std::endl;
+            return EXIT_FAILURE;
+        }
+
+
+
+        auto result = execute_program(name, env);
+        if (!result) {
+          std::cerr << "Error en execute_program: " << result.error().exit_code << " (código: " << result.error().error_code << ")" << std::endl;
+        }
+
+
+        std::string_view header = std::format("FileSize: {}\n", result.value().size());
+
+        int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().data());
+        if (sent != 0) {
+          if (sent == ECONNRESET) {
+            std::cerr << "Warning: A minor error has occurred while sending the response" << std::endl;
+          } else {
+            std::cerr << "fatal error: Error sending the response" << strerror(sent) << std::endl;
+            return EXIT_FAILURE;  
+          }
+        }
+        return EXIT_SUCCESS;
+      } else {
+        auto result = read_all(options.value().output_filename, options.value().extended_mode);
+        if (!result) { 
+          std::cerr << "Error " << result.error() << ": ";
+          if (result.error() == 404) {
+            std::cerr << "Not Found" << std::endl;
+          } else if (result.error() == 403) {
+            std::cerr << "Forbidden" << std::endl;
+          } else {
+            std::cerr << "fatal error: Unknown error reading the file" << std::endl;
+            return EXIT_FAILURE;
+          }
+        }
+
+        std::string_view header = std::format("FileSize: {}\n", result.value().get().size());
+        int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().get());
+        if (sent != 0) {
+          if (sent == ECONNRESET) {
+            std::cerr << "Warning: A minor error has occurred while sending the response" << std::endl;
+          } else {
+            std::cerr << "fatal error: Error sending the response" << strerror(sent) << std::endl;
+            return EXIT_FAILURE;  
+          }
         }
       }
 
-      std::string_view header = std::format("FileSize: {}\n", result.value().get().size());
-      int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().get());
-      if (sent != 0) {
-        if (sent == ECONNRESET) {
-          std::cerr << "Warning: A minor error has occurred while sending the response" << std::endl;
-        } else {
-          std::cerr << "fatal error: Error sending the response" << strerror(sent) << std::endl;
-          return EXIT_FAILURE;  
-        }
-      }
     }
   
   return EXIT_SUCCESS;

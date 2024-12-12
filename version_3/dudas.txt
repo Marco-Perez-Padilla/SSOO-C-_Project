@@ -1,2 +1,0 @@
-1. Si abro el servidor y lo cierro, lo puedo relanzar inmediatamente EXCEPTO si hay un socat por algún lado. ¿Es esto a lo que se refiere en el foro?
-2. El puerto, la ruta, y todo lo del punto cuatro; ¿se deben configurar como variables de entorno? Las tengo como parte del struct.
