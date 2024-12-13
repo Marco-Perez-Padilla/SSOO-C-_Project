@@ -72,8 +72,14 @@ int main(int argc, char* argv[]) {
     while (true) {
       sockaddr_in local_address{};                            
       local_address.sin_family = AF_INET;                    
-      local_address.sin_addr.s_addr = htonl(INADDR_ANY);      
-      local_address.sin_port = htons(0);  
+      local_address.sin_addr.s_addr = htonl(INADDR_ANY);     
+      if (options.value().extended_mode) {
+        std::cerr << "htonl(): Se convierte la dirección IP en formato de red, Big Endian" << std::endl;
+      } 
+      local_address.sin_port = htons(0); 
+      if (options.value().extended_mode) {
+        std::cerr << "htons(): Se convierte el número del puerto en formato de red, Big Endian" << std::endl;
+      }  
       auto accepted_socket = accept_connection(socket.value(), local_address, options.value().extended_mode);
       if (!accepted_socket) {
         std::cerr << "fatal error: Error accepting the connection" << std::endl;
@@ -109,14 +115,18 @@ int main(int argc, char* argv[]) {
         }
       }
 
+      //Getting the whole name
       options.value().output_filename = (options.value().BASE_DIR + processed.value());
       std::string name = options.value().output_filename;
 
+      //Regex to identify "bin" in the name
       std::smatch reslt;
       std::regex pattern (R"(.*/bin/.*)");
       bool reg_result = std::regex_search(name, reslt, pattern);
-      if (reg_result) {
 
+      // If there is "bin"
+      if (reg_result) {
+        // setting the env
         exec_environment env = {
         .request_path = options.value().output_filename,
         .server_basedir = options.value().BASE_DIR,
@@ -126,19 +136,43 @@ int main(int argc, char* argv[]) {
         char ip_buffer[INET_ADDRSTRLEN];
         if (inet_ntop(AF_INET, &local_address.sin_addr, ip_buffer, INET_ADDRSTRLEN)) {
             env.remote_ip = std::string(ip_buffer);
+            if (options.value().extended_mode) {
+              std::cerr << "inet_ntop(): se convierte la direccion IP a texto" << std::endl;
+            }
         } else {
             std::cerr << "Error converting IP address." << std::endl;
             return EXIT_FAILURE;
         }
 
-
-
-        auto result = execute_program(name, env);
+        // Execute
+        auto result = execute_program(name, env, options.value().extended_mode);
+        // If there was an error
         if (!result) {
           std::cerr << "Error en execute_program: " << result.error().exit_code << " (código: " << result.error().error_code << ")" << std::endl;
+          if (result.error().exit_code != "Not found" && result.error().exit_code != "Forbidden" && result.error().exit_code != "Error creating the pipeline" && result.error().exit_code != "Error creating the child process" && result.error().exit_code != "Error creating the dup") {
+            continue;
+          }
+          std::string_view header = "500 Internal Server Error\n";
+          int sent = send_response(accepted_socket.value(), header, options.value().extended_mode);
+          if (sent != 0) {
+            if (sent == ECONNRESET) {
+              std::cerr << "Warning: A minor error has occurred while sending the response" << std::endl;
+            } else {
+              std::cerr << "fatal error: Error sending the response" << strerror(sent) << std::endl;
+              return EXIT_FAILURE;  
+            }
+          }
+          return EXIT_FAILURE;
         }
 
-
+        //std::string_view header {};
+        /*
+        if (options.value().modification) {
+          header = std::string_view (options.value().output_filename);
+        } else {
+          header = std::format("FileSize: {}\n", result.value().size());
+        }
+        */
         std::string_view header = std::format("FileSize: {}\n", result.value().size());
 
         int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().data());
@@ -150,7 +184,7 @@ int main(int argc, char* argv[]) {
             return EXIT_FAILURE;  
           }
         }
-        return EXIT_SUCCESS;
+
       } else {
         auto result = read_all(options.value().output_filename, options.value().extended_mode);
         if (!result) { 
@@ -165,7 +199,16 @@ int main(int argc, char* argv[]) {
           }
         }
 
+        //std::string_view header {};
+        /*
+        if (options.value().modification) {
+          header = std::string_view (options.value().output_filename);
+        } else {
+          header = std::format("FileSize: {}\n", result.value().size());
+        }
+        */
         std::string_view header = std::format("FileSize: {}\n", result.value().get().size());
+        
         int sent = send_response(accepted_socket.value(), header, options.value().extended_mode, result.value().get());
         if (sent != 0) {
           if (sent == ECONNRESET) {

@@ -48,6 +48,8 @@ std::expected<SafeFD, int> accept_connection(const SafeFD& socket,sockaddr_in& c
 int send_response(const SafeFD& socket, std::string_view header, bool extended, std::string_view body = {});
 std::expected<std::string, int> receive_request(const SafeFD& socket,size_t max_size, bool extended);
 std::expected<std::string, int> process_petition (const std::string& request);
-std::expected<std::string, execute_program_error> execute_program(const std::string& path, const exec_environment& env);
+bool file_exists(const std::string& path);
+bool is_executable(const std::string& path);
+std::expected<std::string, execute_program_error> execute_program(const std::string& path, const exec_environment& env, bool extended);
 
 #endif

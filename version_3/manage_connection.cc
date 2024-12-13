@@ -189,12 +189,22 @@ int send_response(const SafeFD& socket, std::string_view header, bool extended, 
 }
 
 
+/**
+ * @brief Auxiliar method to check if a file exists
+ * @param string with the path to the file to be checked
+ * @return bool-type. True if found, false otherwise
+ */
 bool file_exists(const std::string& path) {
   bool result = std::filesystem::exists(path) && std::filesystem::is_regular_file(path);
   return result;
 }
 
-// Verificar si es ejecutable
+
+/**
+ * @brief Auxiliar method to check if a file has permissions to be executed
+ * @param string with the path to the file to be checked
+ * @return bool-type. True if it has the permissions, false otherwise
+ */
 bool is_executable(const std::string& path) {
   if (!file_exists(path)) {
     return false;
@@ -204,14 +214,14 @@ bool is_executable(const std::string& path) {
 }
 
 
-
 /**
- * @brief
+ * @brief Given a path to a file, executes that file if it is possible 
+ * @param string
+ * @param exec_environment
  * @param
- * @param
- * @return
+ * @return string with the result of the execution if everything goes well, execute program_error otherwise
  */
-std::expected<std::string, execute_program_error> execute_program(const std::string& path, const exec_environment& env) {
+std::expected<std::string, execute_program_error> execute_program(const std::string& path, const exec_environment& env, bool extended) {
 
   if (!file_exists(path)) {
     return std::unexpected(execute_program_error{"Not found", 404});
@@ -223,15 +233,27 @@ std::expected<std::string, execute_program_error> execute_program(const std::str
 
   int pipefd[2];   // en 0 tenemos el fd del extremo de lectura y en 1 escritura
   int pipe_result = pipe(pipefd);
+  if (extended) {
+    std::cerr << "pipe(): se crea una tubería" << std::endl;
+  }
   if (pipe_result < 0) {
     return std::unexpected(execute_program_error{"Error creating the pipeline", errno});
   }
 
   pid_t pid = fork();
+  if (extended) {
+    std::cerr << "fork(): se crea un proceso hijo" << std::endl;
+  }
 
   if (pid < 0) {
     close(pipefd[0]);
+    if (extended) {
+      std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+    }
     close(pipefd[1]);
+    if (extended) {
+      std::cerr << "close(): se cierra el extremo de escritura de la tubería" << std::endl;
+    }
     return std::unexpected(execute_program_error{"Error creating the child process", errno});
   }
 
@@ -239,35 +261,70 @@ std::expected<std::string, execute_program_error> execute_program(const std::str
     // Bloque proceso hijo
 
     close (pipefd[0]);   // Cerramos el extremo de lectura (del proceso hijo nada más)
+    if (extended) {
+      std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+    }
 
-    int dup2_result = dup2 (pipefd[1], 1);
+    int dup2_result = dup2(pipefd[1], 1);
+    if (extended) {
+      std::cerr << "dup2(): se duplica el descriptor de archivo" << std::endl;
+    }
+
     if (!dup2_result) {
       int error = errno;
       close(pipefd[1]);
+      if (extended) {
+      std::cerr << "close(): se cierra el extremo de escritura de la tubería" << std::endl;
+      }
       return std::unexpected(execute_program_error{"Error creating the dup", error});
     }
-    // Set environment variables
-    setenv("REQUEST_PATH", env.request_path.c_str(), 1);
-    setenv("SERVER_BASEDIR", env.server_basedir.c_str(), 1);
-    setenv("REMOTE_PORT", std::to_string(env.remote_port).c_str(), 1);
-    setenv("REMOTE_IP", env.remote_ip.c_str(), 1);
 
-    // Execute the actual program passed in path
+    setenv("REQUEST_PATH", env.request_path.c_str(), 1);
+    if (extended) {
+      std::cerr << "setenv(): se setea la variable de entorno REQUEST_PATH" << std::endl;
+    }
+    setenv("SERVER_BASEDIR", env.server_basedir.c_str(), 1);
+    if (extended) {
+      std::cerr << "setenv(): se setea la variable de entorno SERVER_BASEDIR" << std::endl;
+    }
+    setenv("REMOTE_PORT", std::to_string(env.remote_port).c_str(), 1);
+    if (extended) {
+      std::cerr << "setenv(): se setea la variable de entorno REMOTE_PORT" << std::endl;
+    }
+    setenv("REMOTE_IP", env.remote_ip.c_str(), 1);
+    if (extended) {
+      std::cerr << "setenv(): se setea la variable de entorno REMOTE_IP" << std::endl;
+    }
+
     execl(path.c_str(), path.c_str(), nullptr);
+    if (extended) {
+      std::cerr << "execl(): se reemplaza el código por el del archivo señalado" << std::endl;
+    }
 
     return std::unexpected (execute_program_error{"The file couldn't be executed", EXIT_FAILURE});
-  } else if (pid > 0) {
-    // Bloque proceso padre
-
+  } else if (pid > 0) { // Bloque proceso padre
     close(pipefd[1]);
+    if (extended) {
+      std::cerr << "close(): se cierra el extremo de escritura de la tubería" << std::endl;
+    }
+
     // waitpid (pid, int* status, int option), option = 0 ===> waitpid se vuelve bloqueante
     int status {};
     int waitpid_result = waitpid (pid, &status, 0);
+    if (extended) {
+      std::cerr << "waitpid(): se espera a la finalización del proceso hijo" << std::endl;
+    }
+
     if (waitpid_result == -1) {
       int error = errno;
       close(pipefd[0]);
+      if (extended) {
+        std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+      }
       return std::unexpected (execute_program_error{"Error waiting", error});
-    } // Si termina, sea con éxito o error, se ha terminado de forma normal. Si termina por algo externo como una señal (ej ctrl c), termina anormalmente.
+    } 
+
+    // Si termina, sea con éxito o error, se ha terminado de forma normal. Si termina por algo externo como una señal (ej ctrl c), termina anormalmente.
     if (WIFEXITED(status)) {
       // El proceso terminó normalmente
       if (WEXITSTATUS(status) == EXIT_SUCCESS) {
@@ -276,28 +333,47 @@ std::expected<std::string, execute_program_error> execute_program(const std::str
         std::string listen {};
         while (flag) {
           const size_t nbytes = read(pipefd[0], buffer.data(), tam_buffer);
+          if (extended) {
+            std::cerr << "read(): se leen los datos del extremo de lectura de la tubería con el tamaño máximo de buffer" << std::endl;
+          }
           if (nbytes < 0) {
             int error = errno;
             close(pipefd[0]);
+            if (extended) {
+              std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+            }
             return std::unexpected(execute_program_error{"Invalid size", error});
           } else {
             if (nbytes < tam_buffer) {
               flag = false;
             }
             listen.append(buffer.data(), 0, static_cast<size_t>(nbytes));
+            if (extended) {
+              std::cerr << "append(): se añaden los datos al array de lectura" << std::endl;
+            }
           }
         }
         close(pipefd[0]);
+        if (extended) {
+          std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+        }
         
         return listen;
-
       } else {
         close(pipefd[0]);
+        if (extended) {
+          std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+        }
+
         return std::unexpected(execute_program_error{"Error ending the process", WEXITSTATUS(status)});
       }
     } else {
       // El proceso terminó anormalmente
       close(pipefd[0]);
+      if (extended) {
+        std::cerr << "execl(): se reemplaza el código por el del archivo señalado" << std::endl;
+      }
+
       std::string cout = "Proceso hijo termino anormalmente\n" ;
       return cout; 
     }
@@ -306,7 +382,14 @@ std::expected<std::string, execute_program_error> execute_program(const std::str
     // Bloque de error en fork()
     int error = errno;
     close(pipefd[0]);
+    if (extended) {
+      std::cerr << "close(): se cierra el extremo de lectura de la tubería" << std::endl;
+    }
     close (pipefd[1]);
+    if (extended) {
+      std::cerr << "close(): se cierra el extremo de escritura de la tubería" << std::endl;
+    }
+
     return std::unexpected(execute_program_error{"Error in fork", error});
   }
 }

@@ -39,6 +39,7 @@ struct program_options {
  bool b_port = false;
  bool base = false;
  int port = 8080;             // Testear el código con -p 51400
+ bool modification = false;
  std::string output_filename;
  std::string BASE_DIR;
 };
