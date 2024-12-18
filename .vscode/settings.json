@@ -129,6 +129,7 @@
     "iomanip": "cpp",
     "codecvt": "cpp",
     "bitset": "cpp",
-    "regex": "cpp"
+    "regex": "cpp",
+    "map": "cpp"
   }
 }

@@ -48,7 +48,7 @@ SafeMap& SafeMap::operator=(SafeMap&& other) noexcept {
  * @brief Destructor. It assures to unmap the memory automatically when out of scope
  */
 SafeMap::~SafeMap() {
-  if (!sv_.empty()) {
+  if (!sv_.empty() && sv_.data()!=nullptr) {
     munmap(const_cast<char*>(sv_.data()), size_);
   }
 }

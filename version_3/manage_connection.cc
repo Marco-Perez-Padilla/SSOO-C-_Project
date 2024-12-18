@@ -296,12 +296,16 @@ std::expected<std::string, execute_program_error> execute_program(const std::str
       std::cerr << "setenv(): se setea la variable de entorno REMOTE_IP" << std::endl;
     }
 
-    execl(path.c_str(), path.c_str(), nullptr);
     if (extended) {
       std::cerr << "execl(): se reemplaza el código por el del archivo señalado" << std::endl;
     }
+    execl(path.c_str(), path.c_str(), nullptr);
+    
+    if (extended) {
+      std::cerr << "exit(): se retorna con código de error en el proceso hijo" << std::endl;
+    }
+    exit (EXIT_FAILURE);
 
-    return std::unexpected (execute_program_error{"The file couldn't be executed", EXIT_FAILURE});
   } else if (pid > 0) { // Bloque proceso padre
     close(pipefd[1]);
     if (extended) {
