@@ -62,6 +62,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "fatal error: Error creating the socket " << std::endl;
     return EXIT_FAILURE;
   }
+  
 
   int listen = listen_connection(socket.value(), options.value().extended_mode);
   if (listen != 0) {

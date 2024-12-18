@@ -38,6 +38,12 @@ std::expected<SafeFD, int> make_socket(uint16_t port, bool extended) {
     std::cerr << "socket(): Se crea el socket" << std::endl;
   }
 
+  int option=1;
+  setsockopt(fd.get(), SOL_SOCKET, SO_REUSEADDR, &option, sizeof(option));
+  if (extended) {
+    std::cerr << "setsockopt(): Se cambian las opciones del socket" << std::endl;
+  }
+  
   sockaddr_in local_address{};                            
   local_address.sin_family = AF_INET;                    
   local_address.sin_addr.s_addr = htonl(INADDR_ANY);      
